@@ -1,62 +1,50 @@
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
-[RequireComponent(typeof(CharacterController))]
 
+[RequireComponent(typeof(CharacterController))]
+[RequireComponent(typeof(PlayerInput))]
 public class PlayerMovement : MonoBehaviour
 {
-    public CharacterController controller;
-    public Rigidbody rb;
     public float speed = 3f;
-    public Vector3 jumpForce = new Vector3(0, 3f, 0f);
+    public float jumpHeight = 1.2f;
+    public float gravity = -9.8f;
 
-    private Vector3 inputDirecction;
+    private CharacterController controller;
+    private Vector2 moveInput;
+    private float verticalVelocity;
 
     private void Awake()
     {
-        //moveAction += OnMuvement;
-
-        
-    }    
-
-    private void OnEnable()
-    {
-        //moveAction.Enable();
-    }
-
-    private void OnDisable()
-    {
-        //moveAction.Disable();
-    }
-
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
         controller = GetComponent<CharacterController>();
-        rb = GetComponent<Rigidbody>();
     }
 
-    // Update is called once per frame
-    void Update()
+    private void Update()
     {
-        Vector3 moveDirection = (this.transform.forward * inputDirecction.y * inputDirecction.x);
-        controller.Move(inputDirecction.normalized *  speed * Time.deltaTime);
+        // Gravedad manual
+        if (controller.isGrounded && verticalVelocity < 0f)
+            verticalVelocity = -2f;
+        verticalVelocity += gravity * Time.deltaTime;
+
+        Vector3 move = new Vector3(moveInput.x, 0f, moveInput.y) * speed;
+        move.y = verticalVelocity;
+        controller.Move(move * Time.deltaTime);
     }
 
-    private void OnMuvement(InputValue value)
+    private void OnMovement(InputValue value)
     {
-        Vector2 inputValue = value.Get<Vector2>();
-        inputDirecction = new Vector3 (inputValue.x, 0, inputValue.y);
+        moveInput = value.Get<Vector2>();
     }
 
     private void OnLook(InputValue value)
     {
-
+        // Pendiente
     }
 
     private void OnJump(InputValue value)
     {
-        Vector3 inputValue = value.Get<Vector3>();
-        rb.AddForce(jumpForce, ForceMode.Impulse);
+        if (value.isPressed && controller.isGrounded)
+        {
+            verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
+        }
     }
 }
