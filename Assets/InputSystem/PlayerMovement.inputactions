@@ -20,7 +20,7 @@
                     "name": "Look",
                     "type": "Value",
                     "id": "0897dbb7-debf-49c1-b6ed-afc8b0519e28",
-                    "expectedControlType": "",
+                    "expectedControlType": "Vector2",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": true,
