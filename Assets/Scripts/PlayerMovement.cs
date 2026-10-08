@@ -9,8 +9,12 @@ public class PlayerMovement : MonoBehaviour
     public float jumpHeight = 1.2f;
     public float gravity = -9.8f;
 
+    public GameObject thirdPersonCamera;
+
     private CharacterController controller;
     private Vector2 moveInput;
+    private Vector2 lookInput;
+    private bool onPause;
     private float verticalVelocity;
 
     private void Awake()
@@ -28,6 +32,9 @@ public class PlayerMovement : MonoBehaviour
         Vector3 move = new Vector3(moveInput.x, 0f, moveInput.y) * speed;
         move.y = verticalVelocity;
         controller.Move(move * Time.deltaTime);
+
+        //Vector3 look = new Vector3(0f, lookInput.y, 0f);
+        //transform.rotation = Quaternion.Euler(transform.eulerAngles + look);
     }
 
     private void OnMovement(InputValue value)
@@ -37,7 +44,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void OnLook(InputValue value)
     {
-        // Pendiente
+        lookInput = value.Get<Vector2>();
     }
 
     private void OnJump(InputValue value)
@@ -46,5 +53,22 @@ public class PlayerMovement : MonoBehaviour
         {
             verticalVelocity = Mathf.Sqrt(jumpHeight * -2f * gravity);
         }
+    }
+
+    private void OnPause(InputValue value)
+    {
+        if (value.Get<bool>())
+        {
+            onPause = true;
+        }
+        else if (!value.isPressed)
+        {
+            onPause = false;
+        }
+    }
+
+    public bool GetOnPause()
+    {
+        return onPause;
     }
 }

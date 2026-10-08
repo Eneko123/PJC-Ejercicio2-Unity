@@ -1,5 +1,6 @@
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public class CanvasUI : MonoBehaviour
@@ -30,7 +31,7 @@ public class CanvasUI : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
+        Pause();
     }
 
     private void ChangePanel(GameObject activatePanel, GameObject desactivatePanel)
@@ -45,9 +46,33 @@ public class CanvasUI : MonoBehaviour
         player.transform.position = new Vector3(0, 1.5f, 0);
     }
 
+    private void Pause()
+    {
+        if (player.GetComponent<PlayerMovement>().GetOnPause())
+        {
+            Time.timeScale = 0f;
+            ChangePanel(pausePanel, gameplayPanel);
+        }
+        else if (!player.GetComponent<PlayerMovement>().GetOnPause())
+        {
+            Time.timeScale = 1.0f;
+            ChangePanel(gameplayPanel, pausePanel);
+        }
+    }
+
     private void ExitGame()
     {
         Debug.Log("SuccesfullExit");
         Application.Quit();
+    }
+
+    private void OnMoveBetweenButtons(InputValue value)
+    {
+
+    }
+
+    private void OnPressButton(InputValue value)
+    {
+        
     }
 }
