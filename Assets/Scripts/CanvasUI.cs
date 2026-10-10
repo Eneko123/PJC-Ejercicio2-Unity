@@ -1,78 +1,121 @@
-using Unity.VisualScripting;
+using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public class CanvasUI : MonoBehaviour
 {
-    [SerializeField] private GameObject player;
+    private enum State { Start, Playing, Paused, Disconnected }
+
+    [SerializeField] private PlayerMovement player;
 
     [Header("Paneles")]
     [SerializeField] private GameObject startPanel;
-    [SerializeField] private GameObject pausePanel;
     [SerializeField] private GameObject gameplayPanel;
+    [SerializeField] private GameObject pausePanel;
+    [SerializeField] private GameObject disconnectedPanel;
 
     [Header("Botones")]
     [SerializeField] private Button playButton;
-    [SerializeField] private Button continueButton;
     [SerializeField] private Button exitButton;
-    [SerializeField] private Button reanudateButton;
-    [SerializeField] private Button goToStarPanelButton;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    [SerializeField] private Button resumeButton;
+    [SerializeField] private Button backToMenuButton;
+
+    [Header("Version (Fase 4)")]
+    [SerializeField] private TMP_Text versionText;
+
+    private State state;
+
+    private void Start()
     {
         playButton.onClick.AddListener(StartGame);
-        continueButton.onClick.AddListener(() => ChangePanel(gameplayPanel, startPanel));
         exitButton.onClick.AddListener(ExitGame);
-        reanudateButton.onClick.AddListener(() => ChangePanel(gameplayPanel, pausePanel));
-        goToStarPanelButton.onClick.AddListener(() => ChangePanel(pausePanel, gameplayPanel));
+        resumeButton.onClick.AddListener(() => SetState(State.Playing));
+        backToMenuButton.onClick.AddListener(() => SetState(State.Start));
+
+        SetState(State.Start);
     }
 
-    // Update is called once per frame
-    void Update()
+    private void OnEnable()
     {
-        Pause();
+        InputSystem.onDeviceChange += OnDeviceChange;
+        player.PausePressed += TogglePause;
     }
 
-    private void ChangePanel(GameObject activatePanel, GameObject desactivatePanel)
+    private void OnDisable()
     {
-        activatePanel.SetActive(true);
-        desactivatePanel.SetActive(false);
+        InputSystem.onDeviceChange -= OnDeviceChange;
+        player.PausePressed -= TogglePause;
+    }
+
+    private void SetState(State newState)
+    {
+        state = newState;
+
+        startPanel.SetActive(state == State.Start);
+        gameplayPanel.SetActive(state == State.Playing);
+        pausePanel.SetActive(state == State.Paused);
+        disconnectedPanel.SetActive(state == State.Disconnected);
+
+        Time.timeScale = (state == State.Playing) ? 1f : 0f;
+        player.canMove = (state == State.Playing);
+
+        // Elemento seleccionado inicialmente en cada menu
+        if (state == State.Start) Select(playButton);
+        if (state == State.Paused) Select(resumeButton);
+    }
+
+    private void Select(Button button)
+    {
+        EventSystem.current.SetSelectedGameObject(null);
+        EventSystem.current.SetSelectedGameObject(button.gameObject);
     }
 
     private void StartGame()
     {
-        ChangePanel(gameplayPanel, startPanel);
-        player.transform.position = new Vector3(0, 1.5f, 0);
+        player.ResetPosition();
+        SetState(State.Playing);
     }
 
-    private void Pause()
+    private void TogglePause()
     {
-        if (player.GetComponent<PlayerMovement>().GetOnPause())
+        if (state == State.Playing) SetState(State.Paused);
+        else if (state == State.Paused) SetState(State.Playing);
+    }
+
+    // Perdida de foco
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        Debug.Log("Foco de la aplicacion: " + hasFocus);
+        if (!hasFocus && state == State.Playing) SetState(State.Paused);
+    }
+
+    // Desconexion / reconexion del mando
+    private void OnDeviceChange(InputDevice device, InputDeviceChange change)
+    {
+        if (device is not Gamepad) return;
+        Debug.Log("Mando: " + device.displayName + " -> " + change);
+
+        if (change == InputDeviceChange.Disconnected || change == InputDeviceChange.Removed)
         {
-            Time.timeScale = 0f;
-            ChangePanel(pausePanel, gameplayPanel);
+            if (state == State.Playing || state == State.Paused)
+                SetState(State.Disconnected);
         }
-        else if (!player.GetComponent<PlayerMovement>().GetOnPause())
+        else if (change == InputDeviceChange.Reconnected || change == InputDeviceChange.Added)
         {
-            Time.timeScale = 1.0f;
-            ChangePanel(gameplayPanel, pausePanel);
+            if (state == State.Disconnected)
+                SetState(State.Paused); 
         }
     }
 
     private void ExitGame()
     {
-        Debug.Log("SuccesfullExit");
+        Debug.Log("Saliendo de la aplicacion");
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#else
         Application.Quit();
-    }
-
-    private void OnMoveBetweenButtons(InputValue value)
-    {
-
-    }
-
-    private void OnPressButton(InputValue value)
-    {
-        
+#endif
     }
 }
